@@ -1,49 +1,121 @@
 import tkinter as tk
+import random
+import math
 
-# Canvasに円を描画するプログラム
+# 図形を描画するプログラム
 
 # ウインドウを作成する
 window = tk.Tk()
 # キャンバスを作成
 canvas = tk.Canvas(window, width=400, height=400, bg="white")
-# pack()メソッドは、ウィジェット(Canvasなど)をウインドウ内に配置するメソッドです
-# 引数なしの場合は親ウィジェットの中央に配置されます
 canvas.pack()
 
-# 現在の円のIDを保持する変数
-current_circle = None
-
-# クリックされた時の処理
-def on_click(event):
-    global current_circle
-    # 既存の円があれば白で塗りつぶして「消す」
-    if current_circle is not None:
-        canvas.itemconfig(current_circle, fill="white")
+# 図形の基本クラス
+class Shape:
+    def __init__(self, canvas, color, start_x, start_y, dx, dy):
+        self.canvas = canvas
+        self.size = 25  # 基本サイズ（円の半径、四角の半分の幅、三角の高さの半分）
+        self.x = start_x
+        self.y = start_y
+        self.dx = dx
+        self.dy = dy
+        self.color = color
+        self.shape = None  # 図形のIDを保持
+        self.draw()  # 図形を描画
     
-    # クリックされた位置を中心に新しい円を描く
-    # 円のサイズは直径100ピクセル 円の線の太さは0
-    x, y = event.x, event.y
-    radius = 50  # 半径50ピクセル
-    current_circle = canvas.create_oval(
-        x - radius, y - radius,  # 左上の座標
-        x + radius, y + radius,  # 右下の座標
-        fill="red",
-        width=0
-    )
+    def draw(self):
+        pass  # サブクラスで実装
+    
+    def move(self):
+        # 次の位置を計算
+        next_x = self.x + self.dx
+        next_y = self.y + self.dy
+        
+        # 壁との衝突判定
+        if next_x - self.size <= 0 or next_x + self.size >= 400:
+            self.dx = -self.dx
+        if next_y - self.size <= 0 or next_y + self.size >= 400:
+            self.dy = -self.dy
+        
+        # 位置を更新
+        self.x += self.dx
+        self.y += self.dy
+        
+        # 図形を移動
+        self.update_position()
+    
+    def update_position(self):
+        pass  # サブクラスで実装
 
-# キャンバスにクリックイベントを紐付け
-canvas.bind("<Button-1>", on_click)
+# 円クラス
+class Circle(Shape):
+    def draw(self):
+        self.shape = self.canvas.create_oval(
+            self.x - self.size, self.y - self.size,
+            self.x + self.size, self.y + self.size,
+            fill=self.color,
+            width=0
+        )
+    
+    def update_position(self):
+        self.canvas.coords(
+            self.shape,
+            self.x - self.size, self.y - self.size,
+            self.x + self.size, self.y + self.size
+        )
 
-# 最初の円を描く（中心に配置）
-x = 200  # キャンバスの中心のx座標
-y = 200  # キャンバスの中心のy座標
-radius = 50
-current_circle = canvas.create_oval(
-    x - radius, y - radius,
-    x + radius, y + radius,
-    fill="red",
-    width=0
-)
+# 四角クラス
+class Square(Shape):
+    def draw(self):
+        self.shape = self.canvas.create_rectangle(
+            self.x - self.size, self.y - self.size,
+            self.x + self.size, self.y + self.size,
+            fill=self.color,
+            width=0
+        )
+    
+    def update_position(self):
+        self.canvas.coords(
+            self.shape,
+            self.x - self.size, self.y - self.size,
+            self.x + self.size, self.y + self.size
+        )
+
+# 三角形クラス
+class Triangle(Shape):
+    def draw(self):
+        # 三角形の頂点を計算
+        points = [
+            self.x, self.y - self.size,  # 上の頂点
+            self.x - self.size, self.y + self.size,  # 左下の頂点
+            self.x + self.size, self.y + self.size   # 右下の頂点
+        ]
+        self.shape = self.canvas.create_polygon(points, fill=self.color, width=0)
+    
+    def update_position(self):
+        # 三角形の頂点を更新
+        points = [
+            self.x, self.y - self.size,
+            self.x - self.size, self.y + self.size,
+            self.x + self.size, self.y + self.size
+        ]
+        self.canvas.coords(self.shape, *points)
+
+# 図形のインスタンスを作成
+shapes = [
+    Circle(canvas, "red", 100, 100, 2, 3),      # 赤い円
+    Square(canvas, "blue", 300, 100, -2, 2),    # 青い四角
+    Triangle(canvas, "green", 200, 300, 3, -2)  # 緑の三角
+]
+
+# アニメーションの更新処理
+def update():
+    for shape in shapes:
+        shape.move()
+    window.after(16, update)  # 約60FPS
+
+# アニメーションを開始
+update()
 
 # ウインドウを表示する
 window.mainloop()
